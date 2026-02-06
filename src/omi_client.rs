@@ -1,8 +1,16 @@
 use anyhow::{Context, Result};
 use reqwest::blocking::Client;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 const BASE_URL: &str = "https://api.omi.me/v1/dev/user/conversations";
+
+fn null_as_empty_vec<'de, D, T>(deserializer: D) -> std::result::Result<Vec<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    Option::<Vec<T>>::deserialize(deserializer).map(|opt| opt.unwrap_or_default())
+}
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)]
@@ -10,7 +18,7 @@ pub struct Conversation {
     pub id: String,
     #[serde(default)]
     pub created_at: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty_vec")]
     pub transcript_segments: Vec<TranscriptSegment>,
 }
 
@@ -40,6 +48,7 @@ impl OmiClient {
         let response = self
             .client
             .get(BASE_URL)
+            .query(&[("include_transcript", "yes")])
             .bearer_auth(&self.api_key)
             .send()
             .context("failed to send request to Omi API")?;
