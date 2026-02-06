@@ -34,7 +34,8 @@
                       │         │ Writes to:     │                  │
                       │         │ brain/raw/     │                  │
                       │         │  YYYY-MM-DD/   │                  │
-                      │         │   HH.MM.log    │                  │
+                      │         │   HH.MM.SS_    │                  │
+                      │         │   <id>.log     │                  │
                       │         └────────────────┘                  │
                       └─────────────────────────────────────────────┘
                                         │
@@ -65,15 +66,16 @@ HTTP client that calls the Omi Developer API.
 ### Storage (`storage.rs`)
 Handles writing transcript data to disk.
 - Creates date-based directories: `brain/raw/YYYY-MM-DD/`
-- Writes transcript log files: `HH.MM.log`
-- Each log file contains the raw transcript text from that fetch
+- One file per conversation: `HH.MM.SS_<conversation_id>.log`
+- Timestamp derived from the conversation's `created_at` field
+- Idempotent: skips writing if the file already exists
 
 ## Data Flow
 
 1. CLI triggers a fetch (manually or on timer)
 2. `omi_client` sends authenticated GET request to Omi API
 3. API returns JSON array of conversation objects (with transcript segments)
-4. `storage` formats the transcript text and writes it to `brain/raw/YYYY-MM-DD/HH.MM.log`
+4. `storage` writes each conversation to `brain/raw/YYYY-MM-DD/HH.MM.SS_<id>.log` (skips if already saved)
 
 ## Configuration
 
